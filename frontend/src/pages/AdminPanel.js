@@ -166,13 +166,12 @@ const AdminPanel = () => {
     }
   };
 
-  const handleStatusChange = async (complaintId, status) => {
-    try {
-      await axios.put(`http://localhost:5002/api/complaints/${complaintId}`, { status });
-      fetchComplaints();
-    } catch (error) {
-      console.error('Durum güncellenirken hata oluştu:', error);
-    }
+  const handleStatusChange = (complaintId, status) => {
+    setComplaints(complaints.map(complaint => 
+      complaint.id === complaintId 
+        ? { ...complaint, status } 
+        : complaint
+    ));
   };
 
   const handleDeleteComplaint = async (id) => {
@@ -389,9 +388,9 @@ const AdminPanel = () => {
     setOpenDialog(true);
   };
 
-  const handleSaveStatus = async () => {
+  const handleSaveStatus = () => {
     if (selectedComplaint) {
-      await handleStatusChange(selectedComplaint._id, newStatus);
+      handleStatusChange(selectedComplaint.id, newStatus);
       handleCloseDialog();
     }
   };
@@ -533,11 +532,11 @@ const AdminPanel = () => {
               </TableHead>
               <TableBody>
                 {complaints.map((complaint) => (
-                  <TableRow key={complaint._id}>
+                  <TableRow key={complaint.id}>
                     <TableCell>{complaint.title}</TableCell>
                     <TableCell>{complaint.description}</TableCell>
                     <TableCell>{complaint.status}</TableCell>
-                    <TableCell>{new Date(complaint.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>{complaint.createdAt.toLocaleDateString()}</TableCell>
                     <TableCell>
                       <Button
                         variant="contained"
@@ -552,7 +551,7 @@ const AdminPanel = () => {
                         variant="contained"
                         color="error"
                         size="small"
-                        onClick={() => handleDeleteComplaint(complaint._id)}
+                        onClick={() => handleDeleteComplaint(complaint.id)}
                       >
                         Sil
                       </Button>

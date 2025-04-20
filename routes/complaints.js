@@ -12,6 +12,50 @@ const complaintSchema = new mongoose.Schema({
 
 const Complaint = mongoose.model('Complaint', complaintSchema);
 
+// Örnek şikayetleri ekle (sadece ilk çalıştırmada)
+const addSampleComplaints = async () => {
+  try {
+    const count = await Complaint.countDocuments();
+    if (count === 0) {
+      const sampleComplaints = [
+        {
+          title: 'Oda Temizliği Sorunu',
+          description: 'Odamız yeterince temiz değildi ve personel ilgisizdi. Bir daha tercih etmeyeceğim.',
+          status: 'Beklemede'
+        },
+        {
+          title: 'Yemek Kalitesi',
+          description: 'Plaj güzeldi ama yemekler kötüydü. Menü yeterince çeşitli değildi.',
+          status: 'İnceleniyor'
+        },
+        {
+          title: 'Isıtma Sistemi Arızası',
+          description: 'Isıtma sistemi çalışmıyordu ve oda çok soğuktu. Defalarca bildirmemize rağmen düzeltilmedi.',
+          status: 'Çözüldü'
+        },
+        {
+          title: 'WiFi Bağlantı Sorunu',
+          description: 'WiFi bağlantısı çok yavaş ve sürekli kopuyor. İş seyahati için uygun değil.',
+          status: 'Beklemede'
+        },
+        {
+          title: 'Resepsiyon Hizmeti',
+          description: 'Resepsiyon personeli çok ilgisiz ve yardımcı olmuyor. Check-in sırasında uzun süre bekledik.',
+          status: 'İnceleniyor'
+        }
+      ];
+
+      await Complaint.insertMany(sampleComplaints);
+      console.log('Örnek şikayetler eklendi');
+    }
+  } catch (error) {
+    console.error('Örnek şikayetler eklenirken hata oluştu:', error);
+  }
+};
+
+// Örnek şikayetleri ekle
+addSampleComplaints();
+
 // Tüm şikayetleri getir
 router.get('/', async (req, res) => {
   try {
