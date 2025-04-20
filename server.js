@@ -13,8 +13,17 @@ const app = express();
 // .then(() => console.log('MongoDB bağlantısı başarılı'))
 // .catch(err => console.error('MongoDB bağlantı hatası:', err));
 
+// CORS ayarları
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
+
 // Middleware
-app.use(cors());
 app.use(express.json());
 
 // Routes
@@ -40,7 +49,8 @@ app.use('/api/complaints', complaintsRoutes);
 app.get('/', (req, res) => {
   res.status(200).json({ 
     message: 'Tatilim API çalışıyor',
-    status: 'online'
+    status: 'online',
+    environment: process.env.NODE_ENV
   });
 });
 
@@ -76,4 +86,6 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => {
   console.log(`Server ${PORT} portunda çalışıyor`);
+  console.log(`Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+  console.log(`Environment: ${process.env.NODE_ENV}`);
 }); 
