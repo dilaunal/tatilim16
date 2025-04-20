@@ -1,76 +1,72 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 
-// Örnek şikayet verileri
-let complaints = [
-  {
-    _id: 1,
-    name: 'Mehmet Yılmaz',
-    email: 'mehmet@example.com',
-    hotelName: 'Grand Hotel',
-    rating: 2,
-    comment: 'Odalar temiz değildi ve personel ilgisizdi. Bir daha tercih etmeyeceğim.',
-    createdAt: new Date('2025-03-15')
-  },
-  {
-    _id: 2,
-    name: 'Ayşe Demir',
-    email: 'ayse@example.com',
-    hotelName: 'Beach Resort',
-    rating: 3,
-    comment: 'Plaj güzeldi ama yemekler kötüydü. Menü yeterince çeşitli değildi.',
-    createdAt: new Date('2025-02-22')
-  },
-  {
-    _id: 3,
-    name: 'Ali Kaya',
-    email: 'ali@example.com',
-    hotelName: 'Mountain Lodge',
-    rating: 1,
-    comment: 'Isıtma sistemi çalışmıyordu ve oda çok soğuktu. Defalarca bildirmemize rağmen düzeltilmedi.',
-    createdAt: new Date('2025-04-05')
-  }
-];
+// Şikayet şeması
+const complaintSchema = new mongoose.Schema({
+  title: String,
+  description: String,
+  status: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Complaint = mongoose.model('Complaint', complaintSchema);
 
 // Tüm şikayetleri getir
-router.get('/', (req, res) => {
-  res.json(complaints);
+router.get('/', async (req, res) => {
+  try {
+    const complaints = await Complaint.find().sort({ createdAt: -1 });
+    res.json(complaints);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 // Yeni şikayet ekle
-router.post('/', (req, res) => {
-  const { name, email, hotelName, rating, comment } = req.body;
-
-  const newComplaint = {
-    _id: complaints.length + 1,
-    name,
-    email,
-    hotelName,
-    rating,
-    comment,
-    createdAt: new Date()
-  };
-
-  complaints.push(newComplaint);
-  res.status(201).json({
-    success: true,
-    message: 'Şikayetiniz başarıyla kaydedildi',
-    complaint: newComplaint
+router.post('/', async (req, res) => {
+  const complaint = new Complaint({
+    title: req.body.title,
+    description: req.body.description,
+    status: 'Beklemede'
   });
+
+  try {
+    const newComplaint = await complaint.save();
+    res.status(201).json(newComplaint);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Şikayet durumunu güncelle
+router.put('/:id', async (req, res) => {
+  try {
+    const complaint = await Complaint.findById(req.params.id);
+    if (!complaint) {
+      return res.status(404).json({ message: 'Şikayet bulunamadı' });
+    }
+
+    complaint.status = req.body.status;
+    const updatedComplaint = await complaint.save();
+    res.json(updatedComplaint);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
 });
 
 // Şikayet sil
-router.delete('/:id', (req, res) => {
-  const index = complaints.findIndex(c => c._id === parseInt(req.params.id));
-  if (index === -1) {
-    return res.status(404).json({ message: 'Şikayet bulunamadı' });
-  }
+router.delete('/:id', async (req, res) => {
+  try {
+    const complaint = await Complaint.findById(req.params.id);
+    if (!complaint) {
+      return res.status(404).json({ message: 'Şikayet bulunamadı' });
+    }
 
-  complaints.splice(index, 1);
-  res.json({
-    success: true,
-    message: 'Şikayet başarıyla silindi'
-  });
+    await complaint.remove();
+    res.json({ message: 'Şikayet silindi' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 module.exports = router; 
