@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/AdminPanel.css';
+import { Container, Typography, Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 
 const AdminPanel = () => {
   const navigate = useNavigate();
@@ -33,6 +34,8 @@ const AdminPanel = () => {
   const [selectedHotel, setSelectedHotel] = useState(null);
   const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
   const [newPhoto, setNewPhoto] = useState('');
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [newStatus, setNewStatus] = useState('');
 
   useEffect(() => {
     fetchHotels();
@@ -54,15 +57,10 @@ const AdminPanel = () => {
 
   const fetchComplaints = async () => {
     try {
-      const response = await fetch('http://localhost:5002/api/complaints');
-      if (!response.ok) {
-        throw new Error('Şikayetler yüklenirken bir hata oluştu');
-      }
-      const data = await response.json();
-      setComplaints(Array.isArray(data) ? data : []);
+      const response = await axios.get('http://localhost:5002/api/complaints');
+      setComplaints(response.data);
     } catch (error) {
-      console.error('Şikayetler yüklenirken hata:', error);
-      setComplaints([]);
+      console.error('Şikayetler yüklenirken hata oluştu:', error);
     }
   };
 
@@ -165,6 +163,15 @@ const AdminPanel = () => {
         message: 'Silme işlemi sırasında bir hata oluştu',
         severity: 'error'
       });
+    }
+  };
+
+  const handleStatusChange = async (complaintId, status) => {
+    try {
+      await axios.put(`http://localhost:5002/api/complaints/${complaintId}`, { status });
+      fetchComplaints();
+    } catch (error) {
+      console.error('Durum güncellenirken hata oluştu:', error);
     }
   };
 
@@ -376,6 +383,19 @@ const AdminPanel = () => {
     return stars;
   };
 
+  const handleOpenComplaintDialog = (complaint) => {
+    setSelectedComplaint(complaint);
+    setNewStatus(complaint.status);
+    setOpenDialog(true);
+  };
+
+  const handleSaveStatus = async () => {
+    if (selectedComplaint) {
+      await handleStatusChange(selectedComplaint._id, newStatus);
+      handleCloseDialog();
+    }
+  };
+
   return (
     <div className="admin-container">
       <div className="admin-header">
@@ -500,49 +520,48 @@ const AdminPanel = () => {
       {/* Şikayetler Sekmesi */}
       {activeTab === 2 && (
         <div className="complaints-section">
-          <table className="complaints-table">
-            <thead>
-              <tr>
-                <th>İsim</th>
-                <th>E-posta</th>
-                <th>Otel</th>
-                <th>Puan</th>
-                <th>Yorum</th>
-                <th>Tarih</th>
-                <th>İşlemler</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Array.isArray(complaints) && complaints.length > 0 ? (
-                complaints.map((complaint) => (
-                  <tr key={complaint._id}>
-                    <td data-label="İsim">{complaint.name}</td>
-                    <td data-label="E-posta">{complaint.email}</td>
-                    <td data-label="Otel">{complaint.hotelName}</td>
-                    <td data-label="Puan">
-                      <div className="rating">{renderStars(complaint.rating)}</div>
-                    </td>
-                    <td data-label="Yorum">{complaint.comment}</td>
-                    <td data-label="Tarih">{new Date(complaint.createdAt).toLocaleDateString()}</td>
-                    <td data-label="İşlemler">
-                      <button 
-                        className="delete-button"
+          <TableContainer component={Paper} sx={{ mt: 2 }}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Başlık</TableCell>
+                  <TableCell>Açıklama</TableCell>
+                  <TableCell>Durum</TableCell>
+                  <TableCell>Oluşturulma Tarihi</TableCell>
+                  <TableCell>İşlemler</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {complaints.map((complaint) => (
+                  <TableRow key={complaint._id}>
+                    <TableCell>{complaint.title}</TableCell>
+                    <TableCell>{complaint.description}</TableCell>
+                    <TableCell>{complaint.status}</TableCell>
+                    <TableCell>{new Date(complaint.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        size="small"
+                        onClick={() => handleOpenComplaintDialog(complaint)}
+                        sx={{ mr: 1 }}
+                      >
+                        Durum Güncelle
+                      </Button>
+                      <Button
+                        variant="contained"
+                        color="error"
+                        size="small"
                         onClick={() => handleDeleteComplaint(complaint._id)}
                       >
                         Sil
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="7" className="empty-complaints">
-                    Henüz şikayet bulunmuyor
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </div>
       )}
 
@@ -720,6 +739,31 @@ const AdminPanel = () => {
           <button onClick={() => setSnackbar({ ...snackbar, open: false })}>×</button>
         </div>
       )}
+
+      <Dialog open={openDialog} onClose={handleCloseDialog}>
+        <DialogTitle>Şikayet Durumunu Güncelle</DialogTitle>
+        <DialogContent>
+          <FormControl fullWidth sx={{ mt: 2 }}>
+            <InputLabel>Yeni Durum</InputLabel>
+            <Select
+              value={newStatus}
+              onChange={(e) => setNewStatus(e.target.value)}
+              label="Yeni Durum"
+            >
+              <MenuItem value="Beklemede">Beklemede</MenuItem>
+              <MenuItem value="İnceleniyor">İnceleniyor</MenuItem>
+              <MenuItem value="Çözüldü">Çözüldü</MenuItem>
+              <MenuItem value="Reddedildi">Reddedildi</MenuItem>
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>İptal</Button>
+          <Button onClick={handleSaveStatus} variant="contained" color="primary">
+            Kaydet
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };
